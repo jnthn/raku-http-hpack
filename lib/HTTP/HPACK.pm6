@@ -226,6 +226,7 @@ role HTTP::HPACK::Tables {
     my constant STATIC_ELEMS = STATIC_TABLE.elems;
 
     has @!dynamic-table;
+    has Int $.dynamic-table-limit = 512;
 
     method dynamic-table-size() returns Int {
         [+] @!dynamic-table.map({ 32 + .key.chars + .value.chars })
@@ -233,6 +234,9 @@ role HTTP::HPACK::Tables {
 
     method !add-to-dynamic-table(Pair $header) {
         @!dynamic-table.unshift($header);
+        while self.dynamic-table-size > $!dynamic-table-limit {
+            @!dynamic-table.pop;
+        }
     }
 
     method !resolve-decoded-index($index) returns Pair {

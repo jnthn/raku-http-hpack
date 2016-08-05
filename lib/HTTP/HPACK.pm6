@@ -227,6 +227,10 @@ role HTTP::HPACK::Tables {
 
     has @!dynamic-table;
 
+    method dynamic-table-size() returns Int {
+        [+] @!dynamic-table.map({ 32 + .key.chars + .value.chars })
+    }
+
     method !add-to-dynamic-table(Pair $header) {
         @!dynamic-table.unshift($header);
     }

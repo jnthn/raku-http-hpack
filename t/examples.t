@@ -70,6 +70,7 @@ is-deeply HTTP::HPACK::Decoder.new.decode-headers(Buf.new(0x82)),
         [ header(':method', 'GET'), header(':scheme', 'http'),
           header(':path', '/'), header(':authority', 'www.example.com') ],
         'decoded first request header example';
+    is $decoder.dynamic-table-size, 57, 'correct dynamic table size';
     is-deeply $decoder.decode-headers(
         Buf.new(0x82, 0x86, 0x84, 0xbe, 0x58, 0x08, 0x6e, 0x6f, 0x2d, 0x63, 0x61,
                 0x63, 0x68, 0x65)),
@@ -77,6 +78,7 @@ is-deeply HTTP::HPACK::Decoder.new.decode-headers(Buf.new(0x82)),
           header(':path', '/'), header(':authority', 'www.example.com'),
           header('cache-control', 'no-cache') ],
         'decoded second request header example';
+    is $decoder.dynamic-table-size, 110, 'correct dynamic table size';
     is-deeply $decoder.decode-headers(
         Buf.new(0x82, 0x87, 0x85, 0xbf, 0x40, 0x0a, 0x63, 0x75, 0x73, 0x74, 0x6f,
                 0x6d, 0x2d, 0x6b, 0x65, 0x79, 0x0c, 0x63, 0x75, 0x73, 0x74, 0x6f,
@@ -85,6 +87,7 @@ is-deeply HTTP::HPACK::Decoder.new.decode-headers(Buf.new(0x82)),
           header(':path', '/index.html'), header(':authority', 'www.example.com'),
           header('custom-key', 'custom-value') ],
         'decoded third request header example';
+    is $decoder.dynamic-table-size, 164, 'correct dynamic table size';
 }
 
 # C.4.  Request Examples with Huffman Coding
@@ -96,6 +99,7 @@ is-deeply HTTP::HPACK::Decoder.new.decode-headers(Buf.new(0x82)),
         [ header(':method', 'GET'), header(':scheme', 'http'),
           header(':path', '/'), header(':authority', 'www.example.com') ],
         'decoded first request header example (huffman coded)';
+    is $decoder.dynamic-table-size, 57, 'correct dynamic table size';
     is-deeply $decoder.decode-headers(
         Buf.new(0x82, 0x86, 0x84, 0xbe, 0x58, 0x86, 0xa8, 0xeb, 0x10, 0x64, 0x9c,
                 0xbf)),
@@ -103,6 +107,7 @@ is-deeply HTTP::HPACK::Decoder.new.decode-headers(Buf.new(0x82)),
           header(':path', '/'), header(':authority', 'www.example.com'),
           header('cache-control', 'no-cache') ],
         'decoded second request header example (huffman coded)';
+    is $decoder.dynamic-table-size, 110, 'correct dynamic table size';
     is-deeply $decoder.decode-headers(
         Buf.new(0x82, 0x87, 0x85, 0xbf, 0x40, 0x88, 0x25, 0xa8, 0x49, 0xe9, 0x5b,
                 0xa9, 0x7d, 0x7f, 0x89, 0x25, 0xa8, 0x49, 0xe9, 0x5b, 0xb8, 0xe8,
@@ -111,6 +116,7 @@ is-deeply HTTP::HPACK::Decoder.new.decode-headers(Buf.new(0x82)),
           header(':path', '/index.html'), header(':authority', 'www.example.com'),
           header('custom-key', 'custom-value') ],
         'decoded third request header example (huffman coded)';
+    is $decoder.dynamic-table-size, 164, 'correct dynamic table size';
 }
 
 done-testing;

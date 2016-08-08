@@ -147,10 +147,12 @@ class X::HTTP::HPACK::Overflow does X::HTTP::HPACK {
     method message() { "$!what.tclc() at byte $!offset overflows input buffer" }
 }
 
+enum HTTP::HPACK::Indexing <Indexed NotIndexed NeverIndexed>;
+
 class HTTP::HPACK::Header {
     has Str $.name is required;
     has Str $.value is required;
-    has Bool $.never-indexed = False;
+    has HTTP::HPACK::Indexing $.indexing = Indexed;
 
     multi method new(Pair $_) {
         self.new(name => .key, value => .value)
@@ -276,14 +278,18 @@ class HTTP::HPACK::Decoder does HTTP::HPACK::Tables {
                     @headers.push(HTTP::HPACK::Header.new(
                         name => .key,
                         value => .value,
-                        never-indexed => True
+                        indexing => HTTP::HPACK::Indexing::NeverIndexed
                     ));
                 }
             }
             else {
-                @headers.push(HTTP::HPACK::Header.new(
-                    self!decode-literal-header-field($packed, 4, $idx)
-                ));
+                given self!decode-literal-header-field($packed, 4, $idx) {
+                    @headers.push(HTTP::HPACK::Header.new(
+                        name => .key,
+                        value => .value,
+                        indexing => HTTP::HPACK::Indexing::NotIndexed
+                    ));
+                }
             }
         }
 

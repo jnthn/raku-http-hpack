@@ -4,8 +4,8 @@ use HTTP::HPACK :internal;
 # These tests are drawn from the examples section of the HPACK specification,
 # located at https://tools.ietf.org/html/rfc7541#appendix-C
 
-sub header($name, $value, $never-indexed = False) {
-    HTTP::HPACK::Header.new(:$name, :$value, :$never-indexed)
+sub header($name, $value, $indexing = HTTP::HPACK::Indexing::Indexed) {
+    HTTP::HPACK::Header.new(:$name, :$value, :$indexing)
 }
 
 # C.1.1.  Example 1: Encoding 10 Using a 5-Bit Prefix
@@ -46,14 +46,14 @@ is-deeply HTTP::HPACK::Decoder.new.decode-headers(
 is-deeply HTTP::HPACK::Decoder.new.decode-headers(
     Buf.new(0x04, 0x0c, 0x2f, 0x73, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x2f, 0x70,
             0x61, 0x74, 0x68)),
-    [ header(':path', '/sample/path') ],
+    [ header(':path', '/sample/path', HTTP::HPACK::Indexing::NotIndexed) ],
     'decode :path: /sample/path';
 
 # C.2.3.  Literal Header Field Never Indexed
 is-deeply HTTP::HPACK::Decoder.new.decode-headers(
     Buf.new(0x10, 0x08, 0x70, 0x61, 0x73, 0x73, 0x77, 0x6f, 0x72, 0x64, 0x06,
             0x73, 0x65, 0x63, 0x72, 0x65, 0x74 )),
-    [ header('password', 'secret', True) ],
+    [ header('password', 'secret', HTTP::HPACK::Indexing::NeverIndexed) ],
     'decode password: secret';
 
 # C.2.4.  Indexed Header Field

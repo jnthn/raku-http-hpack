@@ -256,7 +256,7 @@ role HTTP::HPACK::Tables {
         my @found = flat(STATIC_TABLE, @!dynamic-table).grep: :p, {
             .defined && .key eq $header.name
         }
-        with @found.first(*.value.value eq $header.value) {
+        with @found.first({ .value.value andthen $_ eq $header.value }) {
             .key => True
         }
         elsif @found {
@@ -366,22 +366,23 @@ class HTTP::HPACK::Encoder does HTTP::HPACK::Tables {
 
     method encode-headers(@headers where all(@headers) ~~ HTTP::HPACK::Header) returns Blob {
         my $result = Buf.new;
-        for @headers {
+        for @headers -> $header {
             # Search tables for a matching entry.
-            my $match = self!find-table-entry($_);
+            my $match = self!find-table-entry($header);
 
             # If exact match and we're allowed to store indexed, emit indexed header
             # field representation.
-            if $match && $match.value && .indexing == HTTP::HPACK::Indexing::Indexed {
+            if $match && $match.value && $header.indexing == HTTP::HPACK::Indexing::Indexed {
                 encode-int($match.key, 7, $result, 0b10000000);
             }
 
             # Literal Header Field with Incremental Indexing
             else {
                 my $index = $match ?? $match.key !! 0;
-                given .indexing {
+                given $header.indexing {
                     when HTTP::HPACK::Indexing::Indexed {
                         encode-int($index, 6, $result, 0b01000000);
+                        self!add-to-dynamic-table($header.name => $header.value);
                     }
                     when HTTP::HPACK::Indexing::NotIndexed {
                         encode-int($index, 4, $result);
@@ -390,8 +391,8 @@ class HTTP::HPACK::Encoder does HTTP::HPACK::Tables {
                         encode-int($index, 4, $result, 0b00010000);
                     }
                 }
-                self!encode-str(.name, $result) unless $match;
-                self!encode-str(.value, $result);
+                self!encode-str($header.name, $result) unless $match;
+                self!encode-str($header.value, $result);
             }
         }
         return $result;

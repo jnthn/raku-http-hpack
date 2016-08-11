@@ -41,6 +41,12 @@ is-deeply HTTP::HPACK::Decoder.new.decode-headers(
             0x61, 0x64, 0x65, 0x72)),
     [ header('custom-key', 'custom-header') ],
     'decode custom-key: custom-header';
+is-deeply HTTP::HPACK::Encoder.new.encode-headers(
+    [ header('custom-key', 'custom-header') ]),
+    Buf.new(0x40, 0x0a, 0x63, 0x75, 0x73, 0x74, 0x6f, 0x6d, 0x2d, 0x6b, 0x65,
+            0x79, 0x0d, 0x63, 0x75, 0x73, 0x74, 0x6f, 0x6d, 0x2d, 0x68, 0x65,
+            0x61, 0x64, 0x65, 0x72),
+    'encode custom-key: custom-header (indexed)';
 
 # C.2.2.  Literal Header Field without Indexing
 is-deeply HTTP::HPACK::Decoder.new.decode-headers(
@@ -48,6 +54,11 @@ is-deeply HTTP::HPACK::Decoder.new.decode-headers(
             0x61, 0x74, 0x68)),
     [ header(':path', '/sample/path', HTTP::HPACK::Indexing::NotIndexed) ],
     'decode :path: /sample/path';
+is-deeply HTTP::HPACK::Encoder.new.encode-headers(
+    [ header(':path', '/sample/path', HTTP::HPACK::Indexing::NotIndexed) ]),
+    Buf.new(0x04, 0x0c, 0x2f, 0x73, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x2f, 0x70,
+            0x61, 0x74, 0x68),
+    'encode :path: /sample/path (not indexed)';
 
 # C.2.3.  Literal Header Field Never Indexed
 is-deeply HTTP::HPACK::Decoder.new.decode-headers(
@@ -55,11 +66,19 @@ is-deeply HTTP::HPACK::Decoder.new.decode-headers(
             0x73, 0x65, 0x63, 0x72, 0x65, 0x74 )),
     [ header('password', 'secret', HTTP::HPACK::Indexing::NeverIndexed) ],
     'decode password: secret';
+is-deeply HTTP::HPACK::Encoder.new.encode-headers(
+    [ header('password', 'secret', HTTP::HPACK::Indexing::NeverIndexed) ]),
+    Buf.new(0x10, 0x08, 0x70, 0x61, 0x73, 0x73, 0x77, 0x6f, 0x72, 0x64, 0x06,
+            0x73, 0x65, 0x63, 0x72, 0x65, 0x74 ),
+    'encode password: secret (never indexed)';
 
 # C.2.4.  Indexed Header Field
 is-deeply HTTP::HPACK::Decoder.new.decode-headers(Buf.new(0x82)),
     [ header(':method', 'GET') ],
     'decode :method: GET';
+is-deeply HTTP::HPACK::Encoder.new.encode-headers([ header(':method', 'GET') ]),
+    Buf.new(0x82),
+    'encode :method: GET (indexed)';
 
 # C.3.  Request Examples without Huffman Coding
 {

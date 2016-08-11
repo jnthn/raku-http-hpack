@@ -251,6 +251,21 @@ role HTTP::HPACK::Tables {
             die X::HTTP::HPACK::IndexOutOfRange.new(:$index);
         }
     }
+
+    method !find-table-entry(HTTP::HPACK::Header $header) {
+        my @found = flat(STATIC_TABLE, @!dynamic-table).grep: :p, {
+            .defined && .key eq $header.name
+        }
+        with @found.first(*.value.value eq $header.value) {
+            .key => True
+        }
+        elsif @found {
+            @found[0].key => False
+        }
+        else {
+            Mu
+        }
+    }
 }
 
 class HTTP::HPACK::Decoder does HTTP::HPACK::Tables {
@@ -347,9 +362,50 @@ class HTTP::HPACK::Decoder does HTTP::HPACK::Tables {
 }
 
 class HTTP::HPACK::Encoder does HTTP::HPACK::Tables {
+    has Bool $.huffman = False;
+
     method encode-headers(@headers where all(@headers) ~~ HTTP::HPACK::Header) returns Blob {
         my $result = Buf.new;
-        die 'encode-headers NYI';
+        for @headers {
+            # Search tables for a matching entry.
+            my $match = self!find-table-entry($_);
+
+            # If exact match and we're allowed to store indexed, emit indexed header
+            # field representation.
+            if $match && $match.value && .indexing == HTTP::HPACK::Indexing::Indexed {
+                encode-int($match.key, 7, $result, 0b10000000);
+            }
+
+            # Literal Header Field with Incremental Indexing
+            else {
+                my $index = $match ?? $match.key !! 0;
+                given .indexing {
+                    when HTTP::HPACK::Indexing::Indexed {
+                        encode-int($index, 6, $result, 0b01000000);
+                    }
+                    when HTTP::HPACK::Indexing::NotIndexed {
+                        encode-int($index, 4, $result);
+                    }
+                    when HTTP::HPACK::Indexing::NeverIndexed {
+                        encode-int($index, 4, $result, 0b00010000);
+                    }
+                }
+                self!encode-str(.name, $result) unless $match;
+                self!encode-str(.value, $result);
+            }
+        }
+        return $result;
+    }
+
+    method !encode-str(str $value, $target) {
+        if $!huffman {
+            die "Huffman encoding NYI";
+        }
+        else {
+            my $encoded = $value.encode('latin-1');
+            encode-int($encoded.bytes, 7, $target);
+            $target.append($encoded);
+        }
     }
 }
 

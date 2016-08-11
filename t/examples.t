@@ -159,6 +159,29 @@ is-deeply HTTP::HPACK::Encoder.new.encode-headers([ header(':method', 'GET') ]),
           header('custom-key', 'custom-value') ],
         'decoded third request header example (huffman coded)';
     is $decoder.dynamic-table-size, 164, 'correct dynamic table size';
+
+    my $encoder = HTTP::HPACK::Encoder.new(:huffman);
+    is-deeply $encoder.encode-headers(
+        [ header(':method', 'GET'), header(':scheme', 'http'),
+          header(':path', '/'), header(':authority', 'www.example.com') ]),
+        Buf.new(0x82, 0x86, 0x84, 0x41, 0x8c, 0xf1, 0xe3, 0xc2, 0xe5, 0xf2, 0x3a,
+                0x6b, 0xa0, 0xab, 0x90, 0xf4, 0xff),
+        'encoded first request header example (huffman coded)';
+    is-deeply $encoder.encode-headers(
+        [ header(':method', 'GET'), header(':scheme', 'http'),
+          header(':path', '/'), header(':authority', 'www.example.com'),
+          header('cache-control', 'no-cache') ]),
+        Buf.new(0x82, 0x86, 0x84, 0xbe, 0x58, 0x86, 0xa8, 0xeb, 0x10, 0x64, 0x9c,
+                0xbf),
+        'encoded second request header example (huffman coded)';
+    is-deeply $encoder.encode-headers(
+        [ header(':method', 'GET'), header(':scheme', 'https'),
+          header(':path', '/index.html'), header(':authority', 'www.example.com'),
+          header('custom-key', 'custom-value') ]),
+        Buf.new(0x82, 0x87, 0x85, 0xbf, 0x40, 0x88, 0x25, 0xa8, 0x49, 0xe9, 0x5b,
+                0xa9, 0x7d, 0x7f, 0x89, 0x25, 0xa8, 0x49, 0xe9, 0x5b, 0xb8, 0xe8,
+                0xb4, 0xbf),
+        'encoded third request header example (huffman coded)';
 }
 
 # C.5.  Response Examples without Huffman Coding
@@ -279,6 +302,40 @@ is-deeply HTTP::HPACK::Encoder.new.encode-headers([ header(':method', 'GET') ]),
           header('set-cookie', 'foo=ASDJKHQKBZXOQWEOPIUAXQWEOIU; max-age=3600; version=1') ],
         'decoded third response header example (huffman coded)';
     is $decoder.dynamic-table-size, 215, 'correct dynamic table size';
+
+    my $encoder = HTTP::HPACK::Encoder.new(:huffman, dynamic-table-limit => 256);
+    is-deeply $encoder.encode-headers(
+        [ header(':status', '302'), header('cache-control', 'private'),
+          header('date', 'Mon, 21 Oct 2013 20:13:21 GMT'),
+          header('location', 'https://www.example.com') ]),
+        Buf.new(0x48, 0x82, 0x64, 0x02, 0x58, 0x85, 0xae, 0xc3, 0x77, 0x1a,
+                0x4b, 0x61, 0x96, 0xd0, 0x7a, 0xbe, 0x94, 0x10, 0x54, 0xd4,
+                0x44, 0xa8, 0x20, 0x05, 0x95, 0x04, 0x0b, 0x81, 0x66, 0xe0,
+                0x82, 0xa6, 0x2d, 0x1b, 0xff, 0x6e, 0x91, 0x9d, 0x29, 0xad,
+                0x17, 0x18, 0x63, 0xc7, 0x8f, 0x0b, 0x97, 0xc8, 0xe9, 0xae,
+                0x82, 0xae, 0x43, 0xd3),
+        'encoded first response header example (huffman coded)';
+    is-deeply $encoder.encode-headers(
+        [ header(':status', '307'), header('cache-control', 'private'),
+          header('date', 'Mon, 21 Oct 2013 20:13:21 GMT'),
+          header('location', 'https://www.example.com') ]),
+        Buf.new(0x48, 0x83, 0x64, 0x0e, 0xff, 0xc1, 0xc0, 0xbf),
+        'encoded second response header example (huffman coded)';
+    is-deeply $encoder.encode-headers(
+        [ header(':status', '200'), header('cache-control', 'private'),
+          header('date', 'Mon, 21 Oct 2013 20:13:22 GMT'),
+          header('location', 'https://www.example.com'),
+          header('content-encoding', 'gzip'),
+          header('set-cookie', 'foo=ASDJKHQKBZXOQWEOPIUAXQWEOIU; max-age=3600; version=1') ]),
+        Buf.new(0x88, 0xc1, 0x61, 0x96, 0xd0, 0x7a, 0xbe, 0x94, 0x10, 0x54,
+                0xd4, 0x44, 0xa8, 0x20, 0x05, 0x95, 0x04, 0x0b, 0x81, 0x66,
+                0xe0, 0x84, 0xa6, 0x2d, 0x1b, 0xff, 0xc0, 0x5a, 0x83, 0x9b,
+                0xd9, 0xab, 0x77, 0xad, 0x94, 0xe7, 0x82, 0x1d, 0xd7, 0xf2,
+                0xe6, 0xc7, 0xb3, 0x35, 0xdf, 0xdf, 0xcd, 0x5b, 0x39, 0x60,
+                0xd5, 0xaf, 0x27, 0x08, 0x7f, 0x36, 0x72, 0xc1, 0xab, 0x27,
+                0x0f, 0xb5, 0x29, 0x1f, 0x95, 0x87, 0x31, 0x60, 0x65, 0xc0,
+                0x03, 0xed, 0x4e, 0xe5, 0xb1, 0x06, 0x3d, 0x50, 0x07),
+        'encoded third response header example (huffman coded)';
 }
 
 done-testing;

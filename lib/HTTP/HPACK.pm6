@@ -399,11 +399,34 @@ class HTTP::HPACK::Encoder does HTTP::HPACK::Tables {
     }
 
     method !encode-str(str $value, $target) {
+        my $encoded = $value.encode('latin-1');
         if $!huffman {
-            die "Huffman encoding NYI";
+            my $huffed = Buf.new;
+            my int $cur-byte = 0;
+            my int $cur-bit = 8;
+            for $encoded.list {
+                my int $code = HUFFMAN_CODES[$_];
+                my int $code-bit = HUFFMAN_LENGTHS[$_];
+                while $code-bit-- {
+                    my int $value = $code +& (1 +< $code-bit) ?? 1 !! 0;
+                    $cur-byte +|= $value +< --$cur-bit;
+                    if $cur-bit == 0 {
+                        $huffed.push($cur-byte);
+                        $cur-bit = 8;
+                        $cur-byte = 0;
+                    }
+                }
+            }
+            if $cur-bit < 8 {
+                while $cur-bit-- {
+                    $cur-byte +|= 1 +< $cur-bit;
+                }
+                $huffed.push($cur-byte);
+            }
+            encode-int($huffed.bytes, 7, $target, 0b10000000);
+            $target.append($huffed);
         }
         else {
-            my $encoded = $value.encode('latin-1');
             encode-int($encoded.bytes, 7, $target);
             $target.append($encoded);
         }

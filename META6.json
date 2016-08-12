@@ -6,10 +6,10 @@
     "depends"      : [
     ],
     "test-depends" : [
-        "Test",
+        "Test"
     ],
     "provides"     : {
-        "HTTP::HPACK" : "lib/HTTP/HPACK.pm6",
+        "HTTP::HPACK" : "lib/HTTP/HPACK.pm6"
     },
     "authors"       : ["Jonathan Worthington"],
     "support"       : {"source" : "git://github.com/jnthn/p6-http-hpack.git"}

@@ -1,5 +1,7 @@
 # HTTP::HPACK
 
+[![Build Status](https://travis-ci.org/jnthn/p6-http-hpack.svg?branch=master)](https://travis-ci.org/jnthn/p6-http-hpack)
+
 ## Synopsis
 
 Decoding:

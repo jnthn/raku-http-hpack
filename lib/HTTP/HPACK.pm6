@@ -230,7 +230,7 @@ role HTTP::HPACK::Tables {
     has @!dynamic-table;
     has Int $.dynamic-table-limit = 512;
 
-    method set-header-table-limit(Int $new-size) {
+    method set-dynamic-table-limit(Int $new-size) {
         $!dynamic-table-limit = $new-size;
         while self.dynamic-table-size > $!dynamic-table-limit {
             @!dynamic-table.pop;

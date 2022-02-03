@@ -281,7 +281,7 @@ class HTTP::HPACK::Decoder does HTTP::HPACK::Tables {
 
         my int $idx = 0;
         while $idx < $packed.elems {
-            my int $header-start = $packed[$idx];
+            my uint $header-start = $packed[$idx];
             if $header-start +& 128 {
                 @headers.push(HTTP::HPACK::Header.new(
                     self!resolve-decoded-index(decode-int($packed, 7, $idx))
@@ -338,16 +338,16 @@ class HTTP::HPACK::Decoder does HTTP::HPACK::Tables {
 
 
     sub decode-str(Blob $packed, int $blob-offset is rw) returns Str is export(:internal) {
-        my int $huffman = $packed[$blob-offset] +& 128;
-        my int $bytes = decode-int($packed, 7, $blob-offset);
+        my uint $huffman = $packed[$blob-offset] +& 128;
+        my uint $bytes = decode-int($packed, 7, $blob-offset);
         my $result-buf;
         if $huffman {
             $result-buf = Buf.new;
             my int $tree-pos = 0;
             my int $end = $blob-offset + $bytes;
             DECODE: while $blob-offset < $end {
-                my int $decode-byte = $packed[$blob-offset++];
-                my int $bit = 128;
+                my uint $decode-byte = $packed[$blob-offset++];
+                my uint $bit = 128;
                 while $bit {
                     my int $node = HUFFMAN_TREE[$tree-pos + ($decode-byte +& $bit ?? 1 !! 0)];
                     if $node > 0 {
@@ -416,7 +416,7 @@ class HTTP::HPACK::Encoder does HTTP::HPACK::Tables {
         my $encoded = $value.encode('latin-1');
         if $!huffman {
             my $huffed = Buf.new;
-            my int $cur-byte = 0;
+            my uint $cur-byte = 0;
             my int $cur-bit = 8;
             for $encoded.list {
                 my int $code = HUFFMAN_CODES[$_];
@@ -447,7 +447,7 @@ class HTTP::HPACK::Encoder does HTTP::HPACK::Tables {
     }
 }
 
-sub encode-int(int $value, int $prefix, $target = Buf.new, int $upper = 0)
+sub encode-int(uint $value, int $prefix, $target = Buf.new, int $upper = 0)
         returns Buf is export(:internal) {
     my int $limit = 2 ** $prefix - 1;
     if $value < $limit {
@@ -455,7 +455,7 @@ sub encode-int(int $value, int $prefix, $target = Buf.new, int $upper = 0)
     }
     else {
         $target.push($limit +| $upper);
-        my int $cur-value = $value - $limit;
+        my uint $cur-value = $value - $limit;
         while $cur-value > 128 {
             $target.push($cur-value mod 128 + 128);
             $cur-value = $cur-value div 128;
@@ -465,12 +465,12 @@ sub encode-int(int $value, int $prefix, $target = Buf.new, int $upper = 0)
     return $target;
 }
 
-sub decode-int(Blob $blob, int $prefix, int $blob-offset is rw) returns int is export(:internal) {
+sub decode-int(Blob $blob, int $prefix, int $blob-offset is rw) returns uint is export(:internal) {
     my int $limit = 2 ** $prefix - 1;
-    my int $result = $blob[$blob-offset] +& $limit;
+    my uint $result = $blob[$blob-offset] +& $limit;
     if $result >= $limit {
         my int $m = 0;
-        my int $cur-byte = $result;
+        my uint $cur-byte = $result;
         repeat while $cur-byte +& 128 {
             $cur-byte = $blob[++$blob-offset];
             $result += ($cur-byte +& 127) * 2 ** $m;

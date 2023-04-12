@@ -228,7 +228,7 @@ role HTTP::HPACK::Tables {
     my constant STATIC_ELEMS = STATIC_TABLE.elems;
 
     has @!dynamic-table;
-    has Int $.dynamic-table-limit = 512;
+    has Int $.dynamic-table-limit = 4096;
 
     method set-dynamic-table-limit(Int $new-size) {
         $!dynamic-table-limit = $new-size;
